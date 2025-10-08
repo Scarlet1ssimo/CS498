@@ -6,22 +6,20 @@ import torch
 import torch.distributed as dist
 
 
-def reduce_scatter(chunks, tmp, world, rank, left, right):
-    #                                                                   #
-    #                                                                   #
-    # your code here: follow slides instruction: do counter-clockwise iteration
-    #                                                                   #
-    #                                                                   #
-    return
+def reduce_scatter(chunks, tmp, send_idx, recv_idx, left, right):
+    r = dist.irecv(tmp, src=left)
+    s = dist.isend(chunks[send_idx], dst=right)
+    r.wait()
+    chunks[recv_idx] += tmp
+    s.wait()
 
 
-def all_gather(chunks, tmp, current, world, rank, left, right):
-    #                                                                   #
-    #                                                                   #
-    # your code here: follow slides instruction: do counter-clockwise iteration
-    #                                                                   #
-    #                                                                   #
-    return
+def all_gather(chunks, tmp, send_idx, recv_idx, left, right):
+    r = dist.irecv(chunks[recv_idx], src=left)
+    s = dist.isend(chunks[send_idx], dst=right)
+    r.wait()
+    chunks[recv_idx] = tmp
+    s.wait()
 
 
 def ring_allreduce_(tensor: torch.Tensor, world_size=None, rankid=None):
@@ -46,12 +44,14 @@ def ring_allreduce_(tensor: torch.Tensor, world_size=None, rankid=None):
     for i in range(1, world):
         send_idx = (rank-i-1+world) % world
         recv_idx = (send_idx+1) % world
-        reduce_scatter(chunks, tmp, world, rank, left, right)
-        chunks[send_idx] = tmp
+        print(f"reduce_scatter step {i} for device {rank}: chunk[{send_idx}] send to {right}, chunk[{recv_idx}] recv from {left}", send_idx, recv_idx)
+        reduce_scatter(chunks, tmp, send_idx, recv_idx, left, right)
 
     for i in range(0, world-1):
-        all_gather(chunks, tmp, i, world, rank, left, right)
-        chunks[(world+rank-i) % world] = tmp
+        recv_idx = (rank-i+world) % world
+        send_idx = (recv_idx+1) % world
+        print(f"all_gather step {i} for device {rank}: chunk[{send_idx}] send to {right}, chunk[{recv_idx}] recv from {left}", send_idx, recv_idx)
+        all_gather(chunks, tmp, send_idx, recv_idx, left, right)
 
     # stitch & unpad
     flat /= world
