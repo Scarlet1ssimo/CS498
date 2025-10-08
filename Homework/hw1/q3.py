@@ -41,16 +41,18 @@ def ring_allreduce_(tensor: torch.Tensor, world_size=None, rankid=None):
     chunks = [padded_flat[i*chunk:(i+1)*chunk] for i in range(world)]
 
     tmp = torch.zeros_like(chunks[0])
-    for i in range(1, world):
-        send_idx = (rank-i-1+world) % world
-        recv_idx = (send_idx+1) % world
-        print(f"reduce_scatter step {i} for device {rank}: chunk[{send_idx}] send to {right}, chunk[{recv_idx}] recv from {left}", send_idx, recv_idx)
+    for i in range(0, world-1):
+        recv_idx = (rank-i-1+world) % world
+        send_idx = (recv_idx+1) % world
+        print(
+            f"reduce_scatter step {i} for device {rank}: chunk[{send_idx}] send to {right}, chunk[{recv_idx}] recv from {left}")
         reduce_scatter(chunks, tmp, send_idx, recv_idx, left, right)
 
     for i in range(0, world-1):
         recv_idx = (rank-i+world) % world
         send_idx = (recv_idx+1) % world
-        print(f"all_gather step {i} for device {rank}: chunk[{send_idx}] send to {right}, chunk[{recv_idx}] recv from {left}", send_idx, recv_idx)
+        print(
+            f"all_gather step {i} for device {rank}: chunk[{send_idx}] send to {right}, chunk[{recv_idx}] recv from {left}")
         all_gather(chunks, tmp, send_idx, recv_idx, left, right)
 
     # stitch & unpad
