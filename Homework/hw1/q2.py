@@ -13,7 +13,7 @@ def server(params, opt, world):
     # here, you should generate one big 1-D tensor containing all parameters to make the transfer process easy
     agg = flat_grad.clone()  # agg as a aggregated counter to record sum gradients
 
-    assert world == 3
+    # assert world == 3
     for i in range(1, world):
         recv_buf = torch.empty_like(agg)
         r = dist.irecv(recv_buf, src=i)
