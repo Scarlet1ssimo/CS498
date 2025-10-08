@@ -18,7 +18,6 @@ def all_gather(chunks, tmp, send_idx, recv_idx, left, right):
     r = dist.irecv(chunks[recv_idx], src=left)
     s = dist.isend(chunks[send_idx], dst=right)
     r.wait()
-    chunks[recv_idx] = tmp
     s.wait()
 
 
