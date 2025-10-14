@@ -55,5 +55,3 @@ $$
 $$
 
 So there are $52076478464$ parameters. And the memory required to store the weights in bf16 is: $52076478464 * 2$ bytes = $104152956928$ bytes ≈ 97.0 GiB.
-
-##
